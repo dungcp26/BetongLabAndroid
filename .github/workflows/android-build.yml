@@ -1,0 +1,45 @@
+name: Build Betong Lab Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Extract Android project
+        run: unzip -o BetongLabAndroid-Starter.zip -d source
+
+      - name: Build APK and AAB
+        working-directory: source/BetongLabAndroid
+        run: gradle assembleDebug bundleRelease
+
+      - name: Upload build files
+        uses: actions/upload-artifact@v4
+        with:
+          name: BetongLabAndroid-build
+          path: |
+            source/BetongLabAndroid/app/build/outputs/apk/debug/*.apk
+            source/BetongLabAndroid/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+          retention-days: 14
