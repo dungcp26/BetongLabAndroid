@@ -27,19 +27,31 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
-      - name: Extract Android project
-        run: unzip -o BetongLabAndroid-Starter.zip -d source
+      - name: Locate Android project
+        run: |
+          mkdir -p buildsrc
+          find . -name 'BetongLabMobileBuild-PhoneOnly.zip' -exec unzip -o {} -d buildsrc/outer \;
+          find . -name 'BetongLabAndroid-Starter.zip' -exec unzip -o {} -d buildsrc/project \;
+          PROJECT=$(find . -name settings.gradle.kts -print -quit | xargs dirname)
+          if [ -z "$PROJECT" ]; then
+            echo "Khong tim thay du an Android"
+            find . -type f
+            exit 1
+          fi
+          echo "PROJECT_DIR=$PROJECT" >> $GITHUB_ENV
+          echo "Tim thay: $PROJECT"
 
       - name: Build APK and AAB
-        working-directory: source/BetongLabAndroid
-        run: gradle assembleDebug bundleRelease
+        run: |
+          cd "$PROJECT_DIR"
+          gradle assembleDebug bundleRelease
 
-      - name: Upload build files
+      - name: Upload APK and AAB
         uses: actions/upload-artifact@v4
         with:
           name: BetongLabAndroid-build
           path: |
-            source/BetongLabAndroid/app/build/outputs/apk/debug/*.apk
-            source/BetongLabAndroid/app/build/outputs/bundle/release/*.aab
+            **/app/build/outputs/apk/debug/*.apk
+            **/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
           retention-days: 14
